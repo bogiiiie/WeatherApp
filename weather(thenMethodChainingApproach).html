@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather App</title>
+  <style>
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap');
+
+      body {
+          font-family: "Poppins", serif;
+          letter-spacing: 0.5px;
+          background: linear-gradient(to bottom, #ffffff, #f0f0f0);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          color: #333;
+          padding: 10px;
+          margin: 0;
+          width: 100%;
+      }
+
+      body, *, *::after, *::before {
+          box-sizing: border-box;
+      }
+
+      #weather-card {
+          background: white;
+          border-radius: 15px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+          padding: 40px 20px;
+          transition: transform 0.2s;
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 100%;
+          max-width: 400px;
+          text-align: center;
+          visibility: hidden;
+      }
+      #weather-card #location {
+          font-size: 24px;
+          margin: 0;
+          font-weight: bold;
+      }
+      #weather-card p {
+          margin: 8px 0;
+      }
+      #temperature {
+          font-size: 48px;
+      }
+      #weather-description {
+          font-size: 18px;
+      }
+      .details {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          margin-top: 20px;
+          width: 100%;
+      }
+      .details p {
+          font-size: 0.8rem;
+          margin: 0;
+      }
+      .detail {
+          text-align: center;
+          border-radius: 10px;
+          padding: 10px;
+          background: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(10px);
+      }
+      .detail img {
+          height: 30px;
+          filter: grayscale(100%) brightness(70%);
+      }
+      .detail-label {
+          font-weight: bold;
+      }
+      .detail-value{
+          font-size: 0.8rem;
+      }
+      .weather-form {
+          display: flex;
+          justify-content: center;
+          gap: 10px;
+          width: 90%;
+          margin-bottom: 20px;
+          background: #fff;
+          border: 1px solid #ccc;
+          border-radius: 24px;
+          padding: 10px;
+      }
+      .weather-form input {
+          border: none;
+          font-size: 1rem;
+          width: calc(100% - 40px);
+          outline: none;
+          padding: 2px;
+          font-family: "Poppins", serif !important;
+          background-color: transparent;
+      }
+
+      .weather-form button {
+          border: none;
+          background: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+      }
+      #search-icon{
+          height: 20px;
+          filter: brightness(45%) invert(70%);
+          transition: all 0.2s ease;
+      }
+
+      #search-icon:hover, #search-icon:active{
+          filter: none;
+      }
+
+      #weather-icon{
+          image-rendering: crisp-edges; /* Makes it sharper */
+      }
+  </style>
+</head>
+<body>
+    <div id="weather-card">
+        <form class="weather-form">
+            <input type="text" placeholder="Enter city name" id="city-input">
+            <button type="button" id="getWeatherBtn"><img src="assets/search.png" alt="Search" id="search-icon"></button>
+        </form>
+        <div id="weather">
+            <h1 id="location">New York, USA</h1>
+            <p id="date">Monday, 15 Jan 2025</p>
+            <img src="" id="weather-icon">
+            <div id="temperature">23°C</div>
+            <div id="weather-description">Sunny</div>
+            <div class="details">
+                <div class="detail" id="wind-detail">
+                    <img src="assets/wind.png" alt="Wind Icon" class="details-icon">
+                    <p class="detail-label">Wind</p>
+                    <p id="wind-value" class="detail-value">12 km/h</p>
+                </div>
+                <div class="detail" id="humidity-detail">
+                    <img src="assets/humidity.png" alt="Humidity Icon" class="details-icon">
+                    <p class="detail-label">Humidity</p>
+                    <p id="humidity-value" class="detail-value">68%</p>
+                </div>
+                <div class="detail" id="cloud-detail">
+                    <img src="assets/cloud.png" alt="Cloud Icon" class="details-icon">
+                    <p class="detail-label">Cloud</p>
+                    <p id="cloud-value" class="detail-value">10%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+  <script>
+    const weatherCard = document.getElementById("weather-card");
+    const cityInput = document.getElementById("city-input");
+    const getWeatherBtn = document.getElementById("getWeatherBtn");
+    const locationLabel = document.getElementById("location");
+    const dateLabel = document.getElementById("date");
+    const weatherIcon = document.getElementById("weather-icon");
+    const temperatureLabel = document.getElementById("temperature");
+    const weatherDescriptionLabel = document.getElementById("weather-description");
+    const windValueLabel = document.getElementById("wind-value");
+    const humidityValueLabel = document.getElementById("humidity-value");
+    const cloudValueLabel = document.getElementById("cloud-value");
+
+    const API_KEY = "f032684d97197832270cc8a21104e467";
+    
+    let cityObject = null;
+    let lat = null;
+    let lon = null;
+    let country = null;
+    let name = "batangas";
+    let cityCountry;
+    let imgIconURL;
+    let weatherDescription;
+    let tempValue;
+    let windValue;
+    let humidityValue;
+    let cloudsValue;
+    let cityTime = null;
+
+    function fetchWeather(cityName){
+        fetch(`http://api.openweathermap.org/geo/1.0/direct?q=${cityName}&limit=5&appid=${API_KEY}`)
+          .then(response1 => {
+            if(response1.ok != true){
+                Swal.fire({
+                    title: "Error!",
+                    text: "Enter a valid city name!",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                    position: "top",
+                })
+              throw new Error(`Could not fetch the Geocoding API request`)
+            }
+            return response1.json();
+          })
+          .then(value => {
+            cityObject = value[0];
+            lat = cityObject.lat;
+            lon = cityObject.lon;
+            country = cityObject.country;
+            name = cityObject.name;
+            cityCountry = `${name}, ${country}`;
+            console.log(value[0]);
+            console.log(lat, lon, country, name, cityCountry);
+            return fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}`);
+          })
+          .then(response2 =>{
+            if(response2.ok != true){
+              throw new Error(`Could not fetch the Weather API request`);
+            }
+
+            return response2.json();
+          })
+          .then(value => {
+            const timezoneOffsetInSeconds = value.timezone;
+
+            // Convert offset to milliseconds and apply it to current UTC time
+            const localTime = new Date(Date.now() + timezoneOffsetInSeconds * 1000);
+
+            // Get weekday, day, short month, year
+            const weekday = localTime.toLocaleString('en-US', { weekday: 'long' });
+            const day = localTime.getDate(); // numeric day
+            const month = localTime.toLocaleString('en-US', { month: 'short' }); // abbreviated month
+            const year = localTime.getFullYear();
+
+            cityTime =`${weekday}, ${day} ${month} ${year}`;
+
+            const iconCode = value.weather[0].icon;
+            imgIconURL = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+
+            weatherDescription = value.weather[0].description
+                                .split(" ")                     // Split by space
+                                .map(word => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize first letter
+                                .join(" ");                    // Join back to a string
+
+            tempValue = `${Math.round((value.main.temp-273.15) * 10) / 10} °C`;
+            windValue = `${Math.round((value.wind.speed) * 10) / 10} km/h`;
+            humidityValue = `${Math.round((value.main.humidity) * 10) / 10}%`;
+            cloudsValue = `${Math.round((value.clouds.all) * 10) / 10}%`;
+            
+            console.log(value, cityTime, imgIconURL, tempValue, windValue, humidityValue, cloudsValue, weatherDescription);
+            displayWeatherInfo();
+          })
+          .catch(error=> console.error(error));
+    }
+
+    function displayWeatherInfo(){
+        locationLabel.textContent = cityCountry;
+        dateLabel.textContent = cityTime;
+        weatherIcon.src = imgIconURL;
+        temperatureLabel.textContent = tempValue;
+        weatherDescriptionLabel.textContent = weatherDescription;
+        windValueLabel.textContent = windValue;
+        humidityValueLabel.textContent = humidityValue;
+        cloudValueLabel.textContent = cloudsValue;
+        weatherCard.style.visibility = "visible";
+    }
+
+    fetchWeather(name);
+    getWeatherBtn.addEventListener("click", function(event){
+        event.preventDefault(); // Prevent the form from reloading the page
+        fetchWeather(cityInput.value);
+    });
+  </script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+</html>

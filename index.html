@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeatherWise</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap');
+
+        body {
+            font-family: "Poppins", serif;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to bottom, #ffffff, #f0f0f0);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+            padding: 10px;
+            margin: 0;
+            width: 100%;
+        }
+
+        body, *, *::after, *::before {
+            box-sizing: border-box;
+        }
+
+        .weather-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 40px 20px;
+            transition: transform 0.2s;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            visibility: hidden;
+        }
+        .weather-card h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+        .weather-card p {
+            margin: 8px 0;
+        }
+        #temperature {
+            font-size: 48px;
+        }
+        #weather-description {
+            font-size: 18px;
+        }
+        .details {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%;
+        }
+        .details p {
+            font-size: 0.8rem;
+            margin: 0;
+        }
+        .detail {
+            text-align: center;
+            border-radius: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+        }
+        .detail img {
+            height: 30px;
+            filter: grayscale(100%) brightness(70%);
+        }
+        .detail-label {
+            font-weight: bold;
+        }
+        .detail-value{
+            font-size: 0.8rem;
+        }
+        .weather-form {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            width: 90%;
+            margin-bottom: 20px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 24px;
+            padding: 10px;
+        }
+        .weather-form input {
+            border: none;
+            font-size: 1rem;
+            width: calc(100% - 40px);
+            outline: none;
+            padding: 2px;
+            font-family: "Poppins", serif;
+        }
+        .weather-form button {
+            border: none;
+            background: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #search-icon{
+            height: 20px;
+            filter: brightness(45%) invert(70%);
+            transition: all 0.2s ease;
+        }
+
+        #search-icon:hover, #search-icon:active{
+            filter: none;
+        }
+
+        #weather-icon{
+            image-rendering: crisp-edges; /* Makes it sharper */
+        }
+    </style>
+</head>
+<body>
+    <div class="weather-card">
+        <form class="weather-form">
+            <input type="text" placeholder="Enter city name" id="city-input">
+            <button type="submit" id="getWeatherBtn"><img src="assets/search.png" alt="Search" id="search-icon"></button>
+        </form>
+        <div id="weather">
+            <h1 id="location">New York, USA</h1>
+            <p id="date">Monday, 15 Jan 2025</p>
+            <img src="" id="weather-icon">
+            <div id="temperature">23°C</div>
+            <div id="weather-description">Sunny</div>
+            <div class="details">
+                <div class="detail" id="wind-detail">
+                    <img src="assets/wind.png" alt="Wind Icon" class="details-icon">
+                    <p class="detail-label">Wind</p>
+                    <p id="wind-value" class="detail-value">12 km/h</p>
+                </div>
+                <div class="detail" id="humidity-detail">
+                    <img src="assets/humidity.png" alt="Humidity Icon" class="details-icon">
+                    <p class="detail-label">Humidity</p>
+                    <p id="humidity-value" class="detail-value">68%</p>
+                </div>
+                <div class="detail" id="cloud-detail">
+                    <img src="assets/cloud.png" alt="Cloud Icon" class="details-icon">
+                    <p class="detail-label">Cloud</p>
+                    <p id="cloud-value" class="detail-value">10%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // WEATHER APP
+        const weatherForm = document.querySelector(".weather-form");
+        const weatherCard = document.querySelector(".weather-card");
+        const cityInput = document.getElementById("city-input");
+        const API_KEY = "f032684d97197832270cc8a21104e467";
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            const defaultCity = "Manila"; // Set a default city
+            const weatherData = await getWeatherData(defaultCity); 
+            if (weatherData) {
+                displayWeatherInfo(weatherData);
+                weatherCard.style.visibility = "visible"
+            } else {
+                console.error("Failed to load initial weather data.");
+            }
+        });
+        
+        weatherForm.addEventListener("submit", async (event) => {
+            event.preventDefault(); // Prevents form from refreshing the page
+
+            const city = cityInput.value;
+
+            if (city) {
+                const weatherData = await getWeatherData(city); // Await the API response
+                if (weatherData) {
+                    displayWeatherInfo(weatherData);
+                } else {
+                    alert("Failed to retrieve weather data.");
+                }
+            } else {
+                alert("Please enter a city");
+            }
+        })
+
+        async function getWeatherData(city){
+
+            const apiURL = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`
+            try{
+                const response = await fetch(apiURL);
+                if(!response.ok) throw new Error("Could not fetch resource");
+
+                const data = await response.json();
+                return data;
+            }
+            catch(error){
+                console.log(error);
+            }
+        }
+        
+
+        function displayWeatherInfo(data){
+            const location = document.getElementById("location");
+            const date = document.getElementById("date");
+            const temp = document.getElementById("temperature");
+            const description = document.getElementById("weather-description");
+            const wind = document.getElementById("wind-value");
+            const humidity = document.getElementById("humidity-value");
+            const cloud = document.getElementById("cloud-value");
+            const d = new Date();
+
+            const weatherDescription = data.weather[0].description;
+
+            location.textContent = `${data.name}, ${data.sys.country}`;
+            date.textContent = `${d.toLocaleDateString('en-GB', { weekday: 'long' })}, ${d.getDate()} ${d.toLocaleDateString('en-GB', { month: 'short' })} ${d.getFullYear()}`;
+            temp.textContent = `${data.main.temp}°C`;
+            description.textContent = weatherDescription.charAt(0).toUpperCase() + weatherDescription.slice(1).toLowerCase();
+            wind.textContent = `${(data.wind["speed"] * 3.6).toFixed(1)}km/h`;
+            humidity.textContent = `${data.main.humidity}%`
+            cloud.textContent = `${data.clouds.all}%`;
+
+            getWeatherIcon(data.weather[0].icon);
+        }
+
+        function getWeatherIcon(iconCode){
+            const weatherIcon = document.getElementById("weather-icon");
+            weatherIcon.src = `https://openweathermap.org/img/wn/${iconCode}@4x.png`
+        }
+            
+    </script>
+</body>
+</html>
